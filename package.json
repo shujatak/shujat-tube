@@ -1,0 +1,15 @@
+{
+  "name": "shujattube",
+  "version": "1.0.0",
+  "description": "A social media app designed by Shujat Ali Khan",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Video-streaming",
+    "Shujat"
+  ],
+  "author": "Shujat Ali Khan",
+  "license": "ISC"
+}
