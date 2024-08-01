@@ -32,6 +32,16 @@ app.use(express.static("public"));
 
 app.use(cookieParser());
 
+// Routes import
+
+import userRouter from "./routes/user.routes.js";
+
+// Routes declaration
+// We will not directly use app.get because router is another place so we will need a middleware
+
+// /users will become prefix  /users/register
+app.use("/api/v1/users", userRouter);
+
 export default app;
 
 // export {app}
