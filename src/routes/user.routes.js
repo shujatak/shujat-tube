@@ -5,4 +5,4 @@ const userRouter = Router();
 
 userRouter.route("/register").post(registerUser);
 
-export default userRouter;
+export { userRouter };

@@ -1,7 +1,7 @@
 // require("dotenv").config();
-import dotevn from "dotenv";
-dotevn.config({
-  path: "./env",
+import dotenv from "dotenv";
+dotenv.config({
+  path: "./.env",
 });
 import app from "./app.js";
 
@@ -24,8 +24,8 @@ connectDB()
 // Approach 1: Connecting db in index.js
 /*
 import mongoose from "mongoose";
-import { DB_NAME } from "./constants";*/
-/*(async () => {
+import { DB_NAME } from "./constants";
+(async () => {
   try {
     await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`);
     // This is part of express
