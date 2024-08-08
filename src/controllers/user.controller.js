@@ -6,7 +6,7 @@ import { ApiResponse } from "../utils/apiResponse.js";
 
 const generateAccessRefreshTokens = async (userId) => {
   try {
-    const user = User.findById(userId);
+    const user = await User.findById(userId);
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
@@ -123,8 +123,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const { email, username, password } = req.body;
 
-  if (!username || email) {
-    throw new ApiError(400, "Username or password is required");
+  if (!(username || email)) {
+    throw new ApiError(400, "Username or email is required");
   }
 
   const user = await User.findOne({ $or: [{ email }, { username }] });
@@ -143,6 +143,8 @@ const loginUser = asyncHandler(async (req, res) => {
     user._id
   );
 
+  console.log(accessToken);
+  console.log(refreshToken);
   // Sending in cookies
   // You can either make another db request or update the object
   // Decide if that operation is expensive
@@ -196,7 +198,8 @@ const logoutUser = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshCookie", options); //From cookie parser
+    .clearCookie("accessToken", options) //From cookie parser
+    .clearCookie("refreshCookie", options)
+    .json(new ApiResponse(200, {}, "User logged outs"));
 });
 export { registerUser, loginUser, logoutUser };
