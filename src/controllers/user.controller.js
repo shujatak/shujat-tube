@@ -4,7 +4,12 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
-import { response } from "express";
+
+// Refactor code to declare options globally due to frequent use
+const options = {
+  httpOnly: true, // Now cookies are only modifiable from the server only
+  secure: true,
+};
 
 const generateAccessRefreshTokens = async (userId) => {
   try {
@@ -154,11 +159,6 @@ const loginUser = asyncHandler(async (req, res) => {
     "-password -refreshToken"
   );
 
-  const options = {
-    httpOnly: true, // Now cookies are only modifiable from the server only
-    secure: true,
-  };
-
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -193,10 +193,6 @@ const logoutUser = asyncHandler(async (req, res) => {
   );
 
   // Clear cookies
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
 
   return res
     .status(200)
@@ -229,11 +225,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     if (incomingRefreshToken !== user?.refreshToken) {
       throw new ApiError(401, "Refresh token is expired or used");
     }
-
-    const options = {
-      httpOnly: true,
-      secure: true,
-    };
 
     const { accessToken, newRefreshToken } = await generateAccessRefreshTokens(
       user._id
