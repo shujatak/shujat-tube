@@ -32,11 +32,12 @@ const generateAccessRefreshTokens = async (userId) => {
   }
 };
 
+// Controller for registering user
 const registerUser = asyncHandler(async (req, res) => {
   // res.status(200).json({
   //   message: "OK",
   // });
-  // Steps:-
+  // TODO:
   // Get user details from frontend
   // Validation - not empty
   // Check if user already exists: username , email
@@ -118,8 +119,9 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, createdUser, "User registered successfully"));
 });
 
+// Controller for login functionality
 const loginUser = asyncHandler(async (req, res) => {
-  // Todos
+  // TODO:
   // req body -> data
   // username or email
   // find the user
@@ -152,13 +154,26 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // console.log(accessToken);
   // console.log(refreshToken);
+  // TODO:
   // Sending in cookies
-  // You can either make another db request or update the object
+  // Either make another db request or update the object
   // Decide if that operation is expensive
-  const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
 
+  // const loggedInUser = await User.findById(user._id).select(
+  //   "-password -refreshToken"
+  // );
+
+  // console.log(user);
+
+  const {
+    password: userPassword,
+    refreshToken: userRefreshToken,
+    ...loggedInUser
+  } = user.toObject();
+
+  // console.log(userPassword);
+  // console.log(userRefreshToken);
+  // console.log(loggedInUser);
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
@@ -176,6 +191,7 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
+// Controller for logout functionalilty
 const logoutUser = asyncHandler(async (req, res) => {
   // Todos
   // Remove cookies
@@ -201,6 +217,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged outs"));
 });
 
+// Controller to refresh access token
 const refreshAccessToken = asyncHandler(async (req, res) => {
   // Lets access refresh token from cookies or body(mobile app)
   const incomingRefreshToken =
@@ -249,4 +266,125 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+// Controller to change current password
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  // req.user has id because the the user is already logged in. Otherwise changing password is not possible
+  const user = await User.findById(req.user?._id);
+  // await becuase isPasswordCorrect is an async function
+  const isPassCorrect = await user.isPasswordCorrect(oldPassword);
+
+  if (!isPassCorrect) {
+    throw new ApiError(400, "Invalid old password");
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false }); // this will trigger the pre-save hook in user model
+
+  return res.status(
+    (200).json(new ApiResponse(200, "Password changed successfully"))
+  );
+});
+
+// Controller to fetch current user
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(200, req.user, "Current user fetched successfully"); // In out auth middleware we injected user into this.user. So, when this middleware runs on request, it injects the whole user in it. Therefore, we have acess to user in req
+});
+
+// Controller to update information
+const updateAcountDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+
+  if (!fullName || !email) {
+    throw new ApiError(400, "All fields are requried");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullName,
+        email,
+        // email: email,
+      },
+
+      // This is so that the info after update could return
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully"));
+});
+
+//Controller to update Avatar
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  // Got through multer middleware -> req.file
+  const avatarLocalPath = req.file?._id; // using .files and not .files
+
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar is missing");
+  }
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  if (!avatar.url) {
+    throw new ApiError(400, "Error while uploading avatar to cloudinary");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar updated successfully"));
+});
+
+// Controller to update Cover Image
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+  const CoverImageLocalPath = req.file?._id;
+
+  if (!CoverImageLocalPath) {
+    throw new ApiError(400, "Cover image is missing");
+  }
+
+  const coverImage = await uploadOnCloudinary(avatarLocalPath);
+  if (!coverImage.url) {
+    throw new ApiError(400, "Error while uploading cover image to cloudinary");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        coverImage: coverImage.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Cover image updated successfully"));
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAcountDetails,
+  updateUserAvatar,
+};
