@@ -283,7 +283,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false }); // this will trigger the pre-save hook in user model
 
   return res.status(
-    (200).json(new ApiResponse(200, "Password changed successfully"))
+    (200).json(new ApiResponse(200, {}, "Password changed successfully"))
   );
 });
 
@@ -345,6 +345,8 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     { new: true }
   ).select("-password");
 
+  // TODO: Delete old avatar
+
   return res
     .status(200)
     .json(new ApiResponse(200, user, "Avatar updated successfully"));
@@ -378,6 +380,87 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Cover image updated successfully"));
 });
 
+const getUserChannelProfie = asyncHandler(async (req, res) => {
+  // We will go to the user's profile to get channel profiel
+  const { username } = req.params;
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username is missing");
+  }
+
+  // User.find({ username });
+  const channel = await User.aggregate([
+    {
+      $match: {
+        username: useername?.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        // In mongodb it becomes lowercase and plural
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        // In mongodb it becomes lowercase and plural
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        subscribersCount: {
+          $size: "$subscribers",
+        },
+        channelsSubscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $condition: {
+            // To send flag to front end
+            if: {
+              // in can look into both objects and arrays
+              $in: [req.user?._id, "$subscribers.subscriber"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+      },
+    },
+  ]);
+
+  // console.log(channel);
+
+  if (!channel?.length) {
+    console.log(404, "Channel does not exist");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, channel[0], "User channel fetched successfully")
+    );
+  // end method getUserChannelProfie
+});
+
 export {
   registerUser,
   loginUser,
@@ -387,4 +470,6 @@ export {
   getCurrentUser,
   updateAcountDetails,
   updateUserAvatar,
+  updateUserCoverImage,
+  getUserChannelProfie,
 };
